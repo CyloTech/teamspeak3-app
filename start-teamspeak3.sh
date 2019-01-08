@@ -63,12 +63,86 @@ if [ ! -f /app/ts_installed ]; then
 
     echo ${TOKEN} >> /ts3key
 
+    cd /data
+    git clone git@github.com:CyloTech/ts3web.git
+    chmod 777 /data/ts3web/icons
+    chmod 777 /data/ts3web/templates_c
+    chmod -R 777 /data/ts3web/site/backups
+    chmod 777 /data/ts3web/temp
+
+    rm -fr /etc/nginx/sites-available/default
+    mv /default.conf /etc/nginx/sites-available/default
+
+cat << EOF >> /data/ts3web/config.php
+<?php
+if(!defined("SECURECHECK")) {die(\$lang['error_file_alone']);}
+
+\$server[0]['alias']= "TS3Server";
+\$server[0]['ip']= "127.0.0.1";
+\$server[0]['tport']= ${QUERY_PORT};
+
+\$cfglang = "en";
+\$duration = "100";
+\$fastswitch=true;
+\$showicons="left";
+\$style="new";
+\$msgsend_name="TS3Server";
+\$show_motd=false;
+\$show_version=true;
+?>
+EOF
+
+# Install Nginx Supervisor Config
+cat << EOF >> /etc/supervisor/conf.d/nginx.conf
+[program:nginx]
+command=/usr/sbin/nginx -g "daemon off;"
+autostart=true
+autorestart=true
+priority=10
+stdout_events_enabled=true
+stderr_events_enabled=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+EOF
+
+# Install PHP-FPM Supervisor Config
+cat << EOF >> /etc/supervisor/conf.d/phpfpm.conf
+[program:php-fpm]
+command = /usr/sbin/php5-fpm --nodaemonize
+autostart=true
+autorestart=true
+priority=5
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+EOF
+
+# Install PHP-FPM Supervisor Config
+cat << EOF >> /etc/supervisor/conf.d/teamspeak3.conf
+[program:ts3server]
+command = /runts.sh
+autostart=true
+autorestart=true
+priority=5
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+EOF
+
+cat << EOF >> /runts.sh
+#!/bin/bash
+export LD_LIBRARY_PATH=".:/data:/data/redist"
+cd /data
+exec su -c "./ts3server license_accepted=1 query_port=${QUERY_PORT} default_voice_port=${VOICE_PORT} filetransfer_port=${FILE_PORT}" -s /bin/sh teamspeak3 &
+EOF
+chmod +x /runts.sh
+
     touch /app/ts_installed
     curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST "https://api.cylo.io/v1/apps/installed/$INSTANCE_ID"
-
 fi
 
-cd /data
-exec su -c "./ts3server license_accepted=1 query_port=${QUERY_PORT} default_voice_port=${VOICE_PORT} filetransfer_port=${FILE_PORT} $TS3ARGS" -s /bin/sh teamspeak3 &
-
-tail -f /data/tsoutput
+exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf

@@ -10,11 +10,13 @@ ENV QUERY_PORT 10002
 ENV FILE_PORT 10003
 
 RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get -y install bzip2 wget ca-certificates netcat curl \
+    && DEBIAN_FRONTEND=noninteractive apt-get -y install bzip2 wget ca-certificates netcat curl nginx php5-fpm git supervisor nano \
     && rm -rf /var/lib/apt/lists/* \
     && useradd -M -s /bin/false --uid 1000 teamspeak3
 
 COPY start-teamspeak3.sh /start-teamspeak3
+
+ADD default.conf /default.conf
 
 RUN groupmod -g 9999 nogroup
 RUN usermod -g 9999 nobody
