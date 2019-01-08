@@ -10,20 +10,18 @@ ENV QUERY_PORT 10002
 ENV FILE_PORT 10003
 
 RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get -y install bzip2 wget ca-certificates netcat \
+    && DEBIAN_FRONTEND=noninteractive apt-get -y install bzip2 wget ca-certificates netcat curl \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd -M -s /bin/false --uid 1000 teamspeak3 \
-    && mkdir /data \
-    && chown teamspeak3:teamspeak3 /data \
-    && mkdir /app \
-    && chown teamspeak3:teamspeak3 /app
+    && useradd -M -s /bin/false --uid 1000 teamspeak3
 
 COPY start-teamspeak3.sh /start-teamspeak3
 
+RUN groupmod -g 9999 nogroup
+RUN usermod -g 9999 nobody
+RUN usermod -u 9999 nobody
+RUN usermod -g 9999 sync
+
 #EXPOSE 9987/udp 10011 30033
 
-USER teamspeak3
-VOLUME /data
-WORKDIR /data
 CMD ["/start-teamspeak3"]
 

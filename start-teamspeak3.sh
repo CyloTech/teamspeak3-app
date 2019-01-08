@@ -3,6 +3,10 @@
 export LD_LIBRARY_PATH=".:/data:/data/redist"
 
 if [ ! -f /app/ts_installed ]; then
+
+    mkdir /data
+    mkdir /app
+
     cd /data
 
     TARFILE=teamspeak3-server_linux_amd64-${TS_VERSION}.tar.bz2
@@ -39,7 +43,11 @@ if [ ! -f /app/ts_installed ]; then
     touch /data/.ts3server_license_accepted
 
     touch /data/tsoutput
-    ./ts3server license_accepted=1 query_port=${QUERY_PORT} default_voice_port=${VOICE_PORT} filetransfer_port=${FILE_PORT} $TS3ARGS > /data/tsoutput &
+
+    chown -R teamspeak3:teamspeak3 /data
+    chown -R teamspeak3:teamspeak3 /app
+
+    exec su -c "./ts3server license_accepted=1 query_port=${QUERY_PORT} default_voice_port=${VOICE_PORT} filetransfer_port=${FILE_PORT} $TS3ARGS > /data/tsoutput" -s /bin/sh teamspeak3 &
 
     while ! nc -z localhost ${QUERY_PORT}; do
       echo "Sleeping for 1 second whilst we wait for it to come online..."
@@ -53,14 +61,14 @@ if [ ! -f /app/ts_installed ]; then
     echo "The Token is ${TOKEN}"
     echo "*******************************************************************"
 
-    tail -f /dev/null
+    echo ${TOKEN} >> /ts3key
 
     touch /app/ts_installed
     curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST "https://api.cylo.io/v1/apps/installed/$INSTANCE_ID"
 
-else
+fi
 
 cd /data
-exec ./ts3server license_accepted=1 query_port=${QUERY_PORT} default_voice_port=${VOICE_PORT} filetransfer_port=${FILE_PORT} $TS3ARGS
+exec su -c "./ts3server license_accepted=1 query_port=${QUERY_PORT} default_voice_port=${VOICE_PORT} filetransfer_port=${FILE_PORT} $TS3ARGS" -s /bin/sh teamspeak3 &
 
-fi
+tail -f /data/tsoutput
