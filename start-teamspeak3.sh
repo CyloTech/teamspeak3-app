@@ -64,7 +64,7 @@ if [ ! -f /app/ts_installed ]; then
     echo ${TOKEN} >> /ts3key
 
     cd /data
-    git clone git@github.com:CyloTech/ts3web.git
+    git clone https://github.com/CyloTech/ts3web.git
     chmod 777 /data/ts3web/icons
     chmod 777 /data/ts3web/templates_c
     chmod -R 777 /data/ts3web/site/backups
