@@ -36,6 +36,8 @@ if [ ! -f /app/ts_installed ]; then
       TS3ARGS="createinifile=1"
     fi
 
+    #TODO: Escape passwords so they can contain '.
+
     if [ -n "$SERVERADMIN_PASSWORD" ]; then
       TS3ARGS="$TS3ARGS serveradmin_password=$SERVERADMIN_PASSWORD"
     fi
