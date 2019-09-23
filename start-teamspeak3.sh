@@ -23,7 +23,7 @@ if [ ! -f /app/ts_installed ]; then
 
     if [ "$download" -eq 1 ]; then
       echo "Downloading ${TARFILE} ..."
-      wget -q http://dl.4players.de/ts/releases/${TS_VERSION}/${TARFILE} \
+      wget -q https://files.teamspeak-services.com/releases/server/${TS_VERSION}/${TARFILE} \
       && tar -j -x -f ${TARFILE} --strip-components=1 \
       && rm -f ${TARFILE} \
       && echo $TS_VERSION >version

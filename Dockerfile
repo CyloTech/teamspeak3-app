@@ -3,7 +3,7 @@ FROM debian:jessie
 MAINTAINER aheil
 
 ENV SERVERADMIN_PASSWORD Letmein123
-ENV TS_VERSION 3.5.1
+ENV TS_VERSION 3.9.1
 ENV LANG C.UTF-8
 ENV VOICE_PORT 10001
 ENV QUERY_PORT 10002
@@ -15,7 +15,7 @@ RUN apt-get update \
     && useradd -M -s /bin/false --uid 1000 teamspeak3
 
 COPY start-teamspeak3.sh /start-teamspeak3
-
+RUN chmod +x /start-teamspeak3
 ADD default.conf /default.conf
 
 RUN groupmod -g 9999 nogroup
