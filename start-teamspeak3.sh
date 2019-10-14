@@ -30,11 +30,11 @@ if [ ! -f /app/ts_installed ]; then
     fi
 
     TS3ARGS=""
-    if [ -e /data/ts3server.ini ]; then
-      TS3ARGS="inifile=/data/ts3server.ini"
-    else
-      TS3ARGS="createinifile=1"
-    fi
+    #if [ -e /data/ts3server.ini ]; then
+    #  TS3ARGS="inifile=/data/ts3server.ini"
+    #else
+    #  TS3ARGS="createinifile=1"
+    #fi
 
     #TODO: Escape passwords so they can contain '.
 
@@ -49,24 +49,57 @@ if [ ! -f /app/ts_installed ]; then
     chown -R teamspeak3:teamspeak3 /data
     chown -R teamspeak3:teamspeak3 /app
 
-    exec su -c "./ts3server license_accepted=1 query_port=${QUERY_PORT} default_voice_port=${VOICE_PORT} filetransfer_port=${FILE_PORT} $TS3ARGS > /data/tsoutput" -s /bin/sh teamspeak3 &
+cat << EOF >> /data/ts3server.ini
+machine_id=
+default_voice_port=${VOICE_PORT}
+voice_ip=
+licensepath=
+filetransfer_port=${FILE_PORT}
+filetransfer_ip=0.0.0.0
+query_port=${QUERY_PORT}
+query_ip=0.0.0.0, ::
+query_ip_whitelist=query_ip_whitelist.txt
+query_ip_blacklist=query_ip_blacklist.txt
+dbplugin=ts3db_sqlite3
+dbpluginparameter=
+dbsqlpath=sql/
+dbsqlcreatepath=create_sqlite/
+dbconnections=10
+logpath=logs
+logquerycommands=0
+dbclientkeepdays=30
+logappend=0
+query_skipbruteforcecheck=0
+query_buffer_mb=20
+http_proxy=
+license_accepted=1
+serverquerydocs_path=serverquerydocs/
+query_ssh_ip=0.0.0.0, ::
+query_ssh_port=10022
+query_protocols=raw,ssh
+query_ssh_rsa_host_key=ssh_host_rsa_key
+query_timeout=300
+EOF
 
-    while ! nc -z localhost ${QUERY_PORT}; do
-      echo "Sleeping for 1 second whilst we wait for it to come online..."
-      sleep 1
-    done
+    exec su -c "./ts3server license_accepted=1 inifile=ts3server.ini $TS3ARGS > /data/tsoutput" -s /bin/sh teamspeak3 &
 
-    TOKEN=$(cat /data/tsoutput | grep token= | awk '{print $5}')
-    TOKEN=$(echo "${TOKEN/|token=/}")
+#    while ! nc -z localhost ${QUERY_PORT}; do
+#      echo "Sleeping for 1 second whilst we wait for it to come online..."
+#      sleep 1
+#    done
 
-    echo "*******************************************************************"
-    echo "The Token is ${TOKEN}"
-    echo "*******************************************************************"
+#    TOKEN=$(cat /data/tsoutput | grep token= | awk '{print $5}')
+#    TOKEN=$(echo "${TOKEN/|token=/}")
 
-    echo ${TOKEN} >> /ts3key
+#    echo "*******************************************************************"
+#    echo "The Token is ${TOKEN}"
+#    echo "*******************************************************************"
+
+#    echo ${TOKEN} >> /ts3key
 
     cd /data
     git clone https://github.com/CyloTech/ts3web.git
+    mkdir /data/ts3web/temp
     chmod 777 /data/ts3web/icons
     chmod 777 /data/ts3web/templates_c
     chmod -R 777 /data/ts3web/site/backups
@@ -127,7 +160,7 @@ cat << EOF >> /etc/supervisor/conf.d/teamspeak3.conf
 [program:ts3server]
 command = /runts.sh
 autostart=true
-autorestart=true
+autorestart=false
 priority=5
 stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
@@ -139,10 +172,16 @@ cat << EOF >> /runts.sh
 #!/bin/bash
 export LD_LIBRARY_PATH=".:/data:/data/redist"
 cd /data
-exec su -c "./ts3server license_accepted=1 query_port=${QUERY_PORT} default_voice_port=${VOICE_PORT} filetransfer_port=${FILE_PORT}" -s /bin/sh teamspeak3 &
+exec su -c "./ts3server inifile=ts3server.ini" -s /bin/sh teamspeak3 &
 EOF
 chmod +x /runts.sh
 
+# Shut down teamspeak and start it using the ini file.
+#pkill -9 ts3server
+#rm -f /data/ts3server.ini
+#rm -fr /data/*.sqlitedb*
+
+    #Set app as installed
     touch /app/ts_installed
     curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST "https://api.cylo.io/v1/apps/installed/$INSTANCE_ID"
 fi
